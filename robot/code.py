@@ -20,19 +20,12 @@ from nupic.frameworks.opf.model_factory import ModelFactory
 
 import model_params
 
-SECONDS_PER_STEP = 2
+SECONDS_PER_STEP = 0.2
 WINDOW = 60
 
-# turn matplotlib interactive mode on (ion)
-plt.ion()
-fig = plt.figure()
-# plot title, legend, etc
-plt.title('CPU prediction example')
-plt.xlabel('time [s]')
 
 # global
 xs = np.array([0])
-
 
 def callback(in_data, frame_count, time_info, status):
     global xs
@@ -52,6 +45,13 @@ if __name__ == "__main__":
     chunk = 1024
     use_device_index = 0
 
+    # turn matplotlib interactive mode on (ion)
+    plt.ion()
+    fig = plt.figure()
+    # plot title, legend, etc
+    plt.title('CPU prediction example')
+    plt.xlabel('time [s]')
+
     """Poll CPU usage, make predictions, and plot the results. Runs forever."""
     # Create the model for predicting CPU usage.
     model = ModelFactory.create(model_params.MODEL_PARAMS)
@@ -66,8 +66,8 @@ if __name__ == "__main__":
     actline, = plt.plot(range(WINDOW), actHistory)
     predline, = plt.plot(range(WINDOW), predHistory)
     # Set the y-axis range.
-    actline.axes.set_ylim(-10, 10)
-    predline.axes.set_ylim(-10, 10)
+    actline.axes.set_ylim(-100, 100)
+    predline.axes.set_ylim(-100, 100)
 
     in_stream = p_in.open(format=py_format,
                           channels=channels,
@@ -86,12 +86,11 @@ if __name__ == "__main__":
         s = time.time()
 
         # Get the CPU usage.
-        cpu = xs[-1]
+        cpu = xs[-1] * 1e+3
 
         # Run the input through the model and shift the resulting prediction.
         modelInput = {'cpu': cpu}
         result = shifter.shift(model.run(modelInput))
-        '''
 
         # Update the trailing predicted and actual value deques.
         inference = result.inferences['multiStepBestPredictions'][5]
@@ -105,15 +104,16 @@ if __name__ == "__main__":
         plt.draw()
         plt.legend( ('actual','predicted') )
 
+        #'''
         # Make sure we wait a total of 2 seconds per iteration.
         try:
           plt.pause(SECONDS_PER_STEP)
         except:
           pass
-        '''
+        #'''
 
-        print xs[-1], xs.shape
-        time.sleep(0.1)
+        print 'Actual :', xs[-1] * 1e+3, ', Predicted :', predHistory[-1]
+        #time.sleep(0.1)
         #c = raw_input()
         #if c=='.q':
         #    break
