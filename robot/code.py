@@ -19,12 +19,12 @@ from nupic.frameworks.opf.model_factory import ModelFactory
 
 import model_params
 
-SECONDS_PER_STEP = 1/16000.
+SECONDS_PER_STEP = 1/1000. #1/16000
 WINDOW = 1000
 
 
 # global
-xs = np.array([0])
+xs = np.array([0]*2000)
 
 def callback(in_data, frame_count, time_info, status):
     global xs
@@ -40,10 +40,12 @@ if __name__ == "__main__":
     # pyaudio
     p_in = pa.PyAudio()
     py_format = p_in.get_format_from_width(2)
-    fs = 16000
+    fs = 16000 #16000 / 44100
     channels = 1
     chunk = 1024
     use_device_index = 0
+
+    delta = 0
 
     # turn matplotlib interactive mode on (ion)
     plt.ion()
@@ -66,8 +68,8 @@ if __name__ == "__main__":
     actline, = plt.plot(range(WINDOW), actHistory)
     predline, = plt.plot(range(WINDOW), predHistory)
     # Set the y-axis range.
-    actline.axes.set_ylim(-200, 200)
-    predline.axes.set_ylim(-200, 200)
+    actline.axes.set_ylim(-10, 300)
+    predline.axes.set_ylim(-10, 300)
 
     in_stream = p_in.open(format=py_format,
                           channels=channels,
@@ -85,7 +87,8 @@ if __name__ == "__main__":
         s = time.time()
             
         # Get the CPU usage.
-        cpu = round(xs[-1] * 1e+4, 2)
+        cpu = round( np.sqrt( np.sum((xs[-1024:]*1e+5)**2) )/1024., 2)
+        #cpu = round(xs[-1] * 1e+4, 2)
         #cpu = psutil.cpu_percent()
 
         # Run the input through the model and shift the resulting prediction.
@@ -104,11 +107,16 @@ if __name__ == "__main__":
         plt.draw()
         plt.legend( ('actual','predicted') )
 
+
         try:
           plt.pause(SECONDS_PER_STEP)
         except:
           pass
-        #print 'Actual :', cpu, ', Predicted :', predHistory[-1]
+
+        # study
+        #print 'Actual :', cpu, ', Predicted :', predHistory[-1], ", delta :",  len(xs)-delta, ", xs.shape:", xs.shape
+        delta = len(xs)
+        if len(xs) > 10000 : xs = np.array([0])
     
     #sf.write("./pyaudio_output.wav", xs, fs)
     in_stream.stop_stream()
