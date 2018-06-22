@@ -32,8 +32,13 @@ def callback(in_data, frame_count, time_info, status):
     in_float[in_float > 0.0] /= float(2**15 - 1)
     in_float[in_float <= 0.0] /= float(2**15) 
     xs = np.r_[xs, in_float]
-
     return (in_data, pa.paContinue)
+
+def FFT_AMP(data):
+    data=np.hamming(len(data))*data
+    data=np.fft.fft(data)
+    data=np.abs(data)
+    return data
 
 if __name__ == "__main__":
 
@@ -87,9 +92,12 @@ if __name__ == "__main__":
         s = time.time()
             
         # Get the CPU usage.
+        fft_data=FFT_AMP(xs[-1024:])
+        fft_axis=np.fft.fftfreq(len(xs[-1024:]), d=1.0/2200)
+        #print 'fft_data.shape:', fft_data.shape, 'fft_axis.shape:', fft_axis.shape, 'fft_data_amax:', np.argmax(fft_data)
+        #cpu = round( np.sqrt( np.sum((fft_data*1e+3)**2) )/1024., 2)
+        cpu = np.argmax(fft_data)
         cpu = round( np.sqrt( np.sum((xs[-1024:]*1e+5)**2) )/1024., 2)
-        #cpu = round(xs[-1] * 1e+4, 2)
-        #cpu = psutil.cpu_percent()
 
         # Run the input through the model and shift the resulting prediction.
         modelInput = {'cpu': cpu}
