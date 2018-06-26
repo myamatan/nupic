@@ -19,7 +19,7 @@ from nupic.frameworks.opf.model_factory import ModelFactory
 
 import model_params
 
-SECONDS_PER_STEP = 1/1000. #1/16000
+SECONDS_PER_STEP = 1/100. #1/16000
 WINDOW = 1000
 
 
@@ -87,15 +87,19 @@ if __name__ == "__main__":
 
     in_stream.start_stream()
 
+    previous_fft=np.array([])
+
     # input loop
     while in_stream.is_active():
         s = time.time()
+
+        if fft_data.shape > 10 : previous_fft = fft_data
+        else : fft_data = previous_fft
             
         # Get the CPU usage.
         fft_data=FFT_AMP(xs[-1024:])
         fft_axis=np.fft.fftfreq(len(xs[-1024:]), d=1.0/2200)
         #print 'fft_data.shape:', fft_data.shape, 'fft_axis.shape:', fft_axis.shape, 'fft_data_amax:', np.argmax(fft_data)
-        #cpu = round( np.sqrt( np.sum((fft_data*1e+3)**2) )/1024., 2)
         cpu = np.argmax(fft_data)
         cpu = round( np.sqrt( np.sum((xs[-1024:]*1e+5)**2) )/1024., 2)
 
