@@ -24,7 +24,7 @@ WINDOW = 1000
 
 
 # global
-xs = np.array([0]*2000)
+xs = np.array([0]*10240)
 
 def callback(in_data, frame_count, time_info, status):
     global xs
@@ -32,6 +32,7 @@ def callback(in_data, frame_count, time_info, status):
     in_float[in_float > 0.0] /= float(2**15 - 1)
     in_float[in_float <= 0.0] /= float(2**15) 
     xs = np.r_[xs, in_float]
+    xs = xs[-10240:]
     return (in_data, pa.paContinue)
 
 def FFT_AMP(data):
@@ -73,8 +74,8 @@ if __name__ == "__main__":
     actline, = plt.plot(range(WINDOW), actHistory)
     predline, = plt.plot(range(WINDOW), predHistory)
     # Set the y-axis range.
-    actline.axes.set_ylim(-10, 300)
-    predline.axes.set_ylim(-10, 300)
+    actline.axes.set_ylim(-1, 30)
+    predline.axes.set_ylim(-1, 30)
 
     in_stream = p_in.open(format=py_format,
                           channels=channels,
@@ -91,17 +92,22 @@ if __name__ == "__main__":
 
     # input loop
     while in_stream.is_active():
+        
         s = time.time()
-
-        if fft_data.shape > 10 : previous_fft = fft_data
-        else : fft_data = previous_fft
             
         # Get the CPU usage.
-        fft_data=FFT_AMP(xs[-1024:])
-        fft_axis=np.fft.fftfreq(len(xs[-1024:]), d=1.0/2200)
+        fft_data=FFT_AMP(xs)
+        if fft_data.shape > 10 : previous_fft = fft_data
+        else : fft_data = previous_fft
+        fft_axis=np.fft.fftfreq(len(xs), d=1.0/2200)
         #print 'fft_data.shape:', fft_data.shape, 'fft_axis.shape:', fft_axis.shape, 'fft_data_amax:', np.argmax(fft_data)
-        cpu = np.argmax(fft_data)
-        cpu = round( np.sqrt( np.sum((xs[-1024:]*1e+5)**2) )/1024., 2)
+        cpu = fft_data[0:2048].mean() * 1e+2
+        ff1 = fft_data[0:2048].mean() * 1e+2
+        ff2 = fft_data[2048:4096].mean() * 1e+2
+        ff3 = fft_data[4096:6144].mean() * 1e+2
+        ff4 = fft_data[6144:8192].mean() * 1e+2
+        ff5 = fft_data[8192:10240].mean() * 1e+2
+        print( round(ff1,3), round(ff2,3), round(ff3,3), round(ff4,3), round(ff5,4) )
 
         # Run the input through the model and shift the resulting prediction.
         modelInput = {'cpu': cpu}
@@ -125,11 +131,6 @@ if __name__ == "__main__":
         except:
           pass
 
-        # study
-        #print 'Actual :', cpu, ', Predicted :', predHistory[-1], ", delta :",  len(xs)-delta, ", xs.shape:", xs.shape
-        delta = len(xs)
-        if len(xs) > 10000 : xs = np.array([0])
-    
     #sf.write("./pyaudio_output.wav", xs, fs)
     in_stream.stop_stream()
     in_stream.close()
